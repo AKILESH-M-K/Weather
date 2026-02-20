@@ -568,18 +568,18 @@ body {
 }
 @media (max-width: 480px) {
   .search-pill {
-    flex-wrap: wrap;
-    padding: 8px;
+    display:flex;
+    align-items:center;
+    padding: 6px;
   }
 
   .search-pill input {
-    width: 100%;
-    padding: 10px 6px;
+    flex:1;
+    min-width:0;
   }
 
   #searchBtn {
-    width: 100%;
-    justify-content: center;
-    margin-top: 6px;
+    padding:10px 14px;
+    white-space:nowrap;
   }
 }
