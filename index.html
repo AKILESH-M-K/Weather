@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WearCast — Campus Weather Guide</title>
+    <link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&family=Cabinet+Grotesk:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Fallback since Clash Display needs a CDN -->
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body data-theme="default">
+
+    <!-- Particle canvas for weather effects -->
+    <canvas id="weatherCanvas"></canvas>
+
+    <!-- Grain overlay -->
+    <div class="grain"></div>
+
+    <div class="app-wrapper">
+
+        <!-- ── HEADER ── -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">
+                    <div class="logo-mark">W</div>
+                    <div>
+                        <div class="logo-text">WearCast</div>
+                        <div class="logo-sub">Campus Weather Guide</div>
+                    </div>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="icon-btn" id="refreshBtn" onclick="refreshWeather()" title="Refresh">
+                    <i class="fas fa-rotate"></i>
+                </button>
+                <button class="icon-btn" id="favBtn" onclick="toggleFavourite()" title="Save city">
+                    <i class="far fa-star" id="favIcon"></i>
+                </button>
+                <div class="last-updated" id="lastUpdated"></div>
+            </div>
+        </header>
+
+        <!-- ── SEARCH ── -->
+        <section class="search-section">
+            <div class="search-pill" id="searchPill">
+                <div class="search-pin-wrap">
+                    <i class="fas fa-location-dot"></i>
+                </div>
+                <input type="text" id="cityInput" placeholder="Search campus or city..." autocomplete="off" />
+                <button onclick="getWeather()" id="searchBtn">
+                    <i class="fas fa-search"></i>
+                    <span>Search</span>
+                </button>
+            </div>
+
+            <!-- Favourite cities + quick chips -->
+            <div class="chips-row" id="chipsRow">
+                <div class="chip-group" id="favChips"></div>
+                <div class="chip-divider" id="chipDivider"></div>
+                <div class="chip-group">
+                    <span class="chip-label">Popular:</span>
+                    <button class="chip" onclick="quickSearch('Coimbatore')">🌴 Coimbatore</button>
+                    <button class="chip" onclick="quickSearch('Chennai')">🌊 Chennai</button>
+                    <button class="chip" onclick="quickSearch('Mumbai')">🏙 Mumbai</button>
+                    <button class="chip" onclick="quickSearch('Delhi')">🏛 Delhi</button>
+                    <button class="chip" onclick="quickSearch('Bangalore')">🌸 Bangalore</button>
+                    <button class="chip" onclick="quickSearch('Hyderabad')">💎 Hyderabad</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── LOADING ── -->
+        <div id="loadingSpinner" class="loading-state hidden">
+            <div class="loading-weather">
+                <div class="loading-orb"></div>
+                <div class="loading-ripple"></div>
+                <div class="loading-ripple r2"></div>
+            </div>
+            <p class="loading-text" id="loadingText">Reading the skies...</p>
+        </div>
+
+        <!-- ── ERROR ── -->
+        <div id="errorMessage" class="error-toast hidden">
+            <i class="fas fa-circle-exclamation"></i>
+            <span id="errorText">Something went wrong.</span>
+            <button class="error-close" onclick="hideError()"><i class="fas fa-xmark"></i></button>
+        </div>
+
+        <!-- ── WEATHER CONTAINER ── -->
+        <div id="weatherContainer" class="weather-container hidden">
+
+            <!-- RAIN ALERT BANNER -->
+            <div id="rainAlert" class="rain-alert hidden">
+                <span class="rain-alert-icon">⛈</span>
+                <div>
+                    <strong>Rain Expected Today!</strong>
+                    <span>Pack your umbrella and waterproof shoes before leaving.</span>
+                </div>
+                <button onclick="dismissAlert()" class="alert-dismiss"><i class="fas fa-xmark"></i></button>
+            </div>
+
+            <!-- HERO: Current + Vibe + Outfit -->
+            <div class="hero-row">
+
+                <!-- Current Weather (big) -->
+                <div class="card card-hero" id="heroCard">
+                    <div id="currentWeather"></div>
+                </div>
+
+                <!-- Right column -->
+                <div class="hero-side">
+
+                    <!-- Daily Vibe -->
+                    <div class="card card-vibe" id="vibeCard">
+                        <div class="card-label"><i class="fas fa-fire-flame-curved"></i> Today's Vibe</div>
+                        <div id="dailyVibe" class="vibe-text"></div>
+                        <button class="share-btn" onclick="shareOutfit()" id="shareBtn">
+                            <i class="fas fa-share-nodes"></i> Share Look
+                        </button>
+                    </div>
+
+                    <!-- Comfort Meter -->
+                    <div class="card card-comfort">
+                        <div class="card-label"><i class="fas fa-gauge-high"></i> Comfort Index</div>
+                        <div id="comfortMeter"></div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- OUTFIT BUILDER -->
+            <div class="section-title">
+                <i class="fas fa-shirt"></i> Outfit Builder
+                <span class="section-badge">Tap items to swap</span>
+            </div>
+            <div class="card card-outfit-builder">
+                <div id="outfitBuilder"></div>
+            </div>
+
+            <!-- PACKING CHECKLIST -->
+            <div class="section-title">
+                <i class="fas fa-list-check"></i> Smart Pack List
+                <span class="section-badge" id="checkProgress">0/0 packed</span>
+            </div>
+            <div class="card card-checklist">
+                <div id="packingChecklist"></div>
+            </div>
+
+            <!-- SUN TRACKER + UV + WIND -->
+            <div class="three-grid">
+                <div class="card card-sun">
+                    <div class="card-label"><i class="fas fa-sun"></i> Sun Tracker</div>
+                    <div id="sunTracker"></div>
+                </div>
+                <div class="card card-uv">
+                    <div class="card-label"><i class="fas fa-radiation"></i> UV Index</div>
+                    <div id="uvIndex"></div>
+                </div>
+                <div class="card card-wind">
+                    <div class="card-label"><i class="fas fa-wind"></i> Wind</div>
+                    <div id="windInfo"></div>
+                </div>
+            </div>
+
+            <!-- HOURLY FORECAST SCROLLER -->
+            <div class="section-title">
+                <i class="fas fa-clock"></i> Today's Timeline
+            </div>
+            <div class="card card-timeline">
+                <div class="timeline-scroll" id="timelineScroll"></div>
+            </div>
+
+            <!-- CAMPUS TIPS -->
+            <div class="section-title">
+                <i class="fas fa-lightbulb"></i> Campus Tips
+                <span class="section-badge" id="tipCityBadge"></span>
+            </div>
+            <div class="card card-tips">
+                <div id="campusTips"></div>
+            </div>
+
+            <!-- LAYERING GUIDE -->
+            <div class="section-title">
+                <i class="fas fa-layer-group"></i> Smart Layering
+            </div>
+            <div class="card card-layering">
+                <div id="layeringGuide"></div>
+            </div>
+
+        </div><!-- /weatherContainer -->
+
+        <footer class="footer">
+            <span>Made with ☀️ for Indian campus life</span>
+            <span class="footer-dot">·</span>
+            <span>Data: OpenWeatherMap</span>
+        </footer>
+    </div>
+
+    <!-- Share Toast -->
+    <div id="shareToast" class="share-toast hidden">
+        <i class="fas fa-check-circle"></i> Outfit copied to clipboard!
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
